@@ -40,9 +40,9 @@ import os
 import pickle
 import random
 
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import tensorflow_datasets as tfds
 from privacy.analysis.rdp_accountant import compute_rdp
 from privacy.analysis.rdp_accountant import get_privacy_spent
 from privacy.optimizers import dp_optimizer
@@ -190,12 +190,42 @@ def compute_epsilon(steps):
 
 
 def log_perplexity(estimator, sequence):
+    assert 0 < len(sequence.shape) <= 2, "Length of the shape of the sequence has to be 1 or 2, currently it is {}".\
+        format(len(sequence.shape))
+    if len(sequence.shape) == 1:
+        formatted_sequence = sequence.reshape((1, -1))
+    else:
+        formatted_sequence = sequence
     sequence_input = tf.estimator.inputs.numpy_input_fn(
-        x={'x': sequence[:20].reshape(1, 20)},
+        x={'x': formatted_sequence},
         batch_size=20,
         num_epochs=1,
         shuffle=False)
-    return estimator.predict(sequence_input)
+    sequence_length = formatted_sequence.shape[1]
+    prediction_generator = estimator.predict(sequence_input)
+    log_perplexity_list = []
+    for i, prediction in enumerate(prediction_generator):
+        # prediction = next(prediction_generator)
+        sequence_probabilities = prediction[(range(sequence_length-1), formatted_sequence[i, 1:])]
+        negative_log_probability = np.sum(-np.log(sequence_probabilities))
+        log_perplexity_list.append(negative_log_probability)
+    return log_perplexity_list
+
+
+def estimate_z_score(estimator, secret, secret_format, dictionary, seed=42, sample_size=1000):
+    secret_log_perplexity = log_perplexity(estimator=estimator, sequence=secret)
+    np.random.seed(seed=seed)
+    samples_of_random_space = np.random.randint(0, 10, (sample_size, 9))
+    list_of_samples = []
+    for i in range(sample_size):
+        sample = secret_format.format(*samples_of_random_space[i]).split()
+        int_representation = [dictionary[character] for character in sample]
+        list_of_samples.append(int_representation)
+    sample_log_perplexity_list = log_perplexity(estimator, np.array(list_of_samples))
+    mean = np.mean(sample_log_perplexity_list)
+    std = np.std(sample_log_perplexity_list)
+    z_score = (secret_log_perplexity- mean)/std
+    return z_score
 
 
 def main(unused_argv):
@@ -213,16 +243,6 @@ def main(unused_argv):
 
     warm_start_from = {'warm_start_from': FLAGS.model_dir} if FLAGS.load_model else {}
 
-    # Instantiate the tf.Estimator.
-    conf = tf.estimator.RunConfig(save_summary_steps=1000)
-    lm_classifier = tf.estimator.Estimator(model_fn=rnn_model_fn,
-                                           model_dir=FLAGS.model_dir,
-                                           config=conf,
-                                           **warm_start_from)
-
-    predict = log_perplexity(estimator=lm_classifier, sequence=secret_sequence)
-    l = next(predict)
-
     # Create tf.Estimator input functions for the training and test data.
     batch_len = FLAGS.batch_size * SEQ_LEN
     # Calculate remainders
@@ -234,6 +254,9 @@ def main(unused_argv):
     else:
         train_data_end = len(train_data) - batch_len
     train_label_end = train_data_end + 1
+    # Set the umber of training data accordingly, calling the estimator beforehand might cause problems
+    global NB_TRAIN
+    NB_TRAIN = train_data_end
     # Same for the test data
     if remainder_test != 0:
         test_data_end = len(test_data) - remainder_test
@@ -253,6 +276,21 @@ def main(unused_argv):
         num_epochs=1,
         shuffle=False)
 
+    # Instantiate the tf.Estimator.
+    conf = tf.estimator.RunConfig(save_summary_steps=1000)
+    lm_classifier = tf.estimator.Estimator(model_fn=rnn_model_fn,
+                                           model_dir=FLAGS.model_dir,
+                                           config=conf,
+                                           **warm_start_from)
+
+    z_score_list = []
+
+    # z_score = estimate_z_score(estimator=lm_classifier,
+    #                            secret=secret_sequence,
+    #                            secret_format=dataset['secret_format'],
+    #                            dictionary=dataset['dictionary'],
+    #                            seed=FLAGS.seed + 1,
+    #                            sample_size=1000)
     # Training loop.
     steps_per_epoch = len(train_data) // batch_len
     for epoch in range(1, FLAGS.epochs + 1):
@@ -274,6 +312,24 @@ def main(unused_argv):
             print('For delta=1e-5, the current epsilon is: %.2f' % eps)
         else:
             print('Trained with vanilla non-private SGD optimizer')
+
+        z_score = estimate_z_score(estimator=lm_classifier,
+                                   secret=secret_sequence,
+                                   secret_format=dataset['secret_format'],
+                                   dictionary=dataset['dictionary'],
+                                   seed=FLAGS.seed + 1,
+                                   sample_size=1000)
+        z_score_list.append(z_score)
+        print("z-score: {}".format(z_score))
+
+    x = range(1, FLAGS.epochs + 1)
+    plt.plot(x, z_score_list, label='z-score')
+    plt.xlabel('Epoch')
+    plt.ylabel('z-score')
+    plt.legend()
+    plt.title('Secret: {}'.format(dataset['secret_plain'].replace(' ', '').replace('_', ' ')))
+    plt.savefig("z_score_{}.png".format(dataset['secret_format']).replace(' ', ''))
+    plt.close()
 
 
 if __name__ == '__main__':
