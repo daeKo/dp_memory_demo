@@ -3,7 +3,7 @@ This is a short demo for training a simple two-layer LSTM character-level langua
 
 ## Installation
 
-You just have to follow the instructions in https://github.com/tensorflow/privacy, since it covers all dependencies.
+First, install matplotlib, then you just have to follow the instructions in https://github.com/tensorflow/privacy, since it covers all remaining dependencies.
 
 You also should copy a version of the Pennchar Dataset to ./data/.
 
