@@ -60,7 +60,7 @@ tf.flags.DEFINE_integer('microbatches', 256, 'Number of microbatches '
                                              '(must evenly divide batch_size)')
 tf.flags.DEFINE_string('model_dir', None, 'Model directory')
 tf.flags.DEFINE_string('data_dir', None, 'Directory containing the PTB data.')
-tf.flags.DEFINE_string('secret_format', 't h e _ r a n d o m _ n u m b e r _ i s {} {} {} {} {} {} {} {} {}',
+tf.flags.DEFINE_string('secret_format', 't h e _ r a n d o m _ n u m b e r _ i s _ {} {} {} {} {} {} {} {} {}',
                        'Format of the secret injected in the data set.')
 tf.flags.DEFINE_boolean('load_model', False, 'If True, load the latest checkpoint from model_dir. If False, '
                                              'train from scratch.')
@@ -117,7 +117,7 @@ def rnn_model_fn(features, labels, mode):  # pylint: disable=unused-argument
         eval_metric_ops = {
             'accuracy':
                 tf.metrics.accuracy(
-                    labels=tf.cast(x[:, 1:], dtype=tf.int32),
+                    labels=tf.cast(labels, dtype=tf.int32),
                     predictions=tf.argmax(input=logits, axis=2))
         }
         return tf.estimator.EstimatorSpec(mode=mode,
