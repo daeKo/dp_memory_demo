@@ -107,5 +107,4 @@ venv.bak/
 .idea
 
 # Ignore datasets and models
-data/*
 model_dir/*
