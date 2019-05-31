@@ -1,24 +1,12 @@
-# dp_demo
-This is a short demo for training a simple two-layer LSTM character-level language model using differentially private SGD and regular one. It is based on the language model example given in https://github.com/tensorflow/privacy/blob/master/tutorials/lm_dpsgd_tutorial.py
+# DP Memory Example
+This is a short demo for training a simple two-layer LSTM character-level language model using differentially private Adam and regular one. It is based on the language model example given in https://github.com/tensorflow/privacy/blob/master/tutorials/lm_dpsgd_tutorial.py and shows the memorization effect occuring in recurrent neural networks and how to limit it.
 
 ## Installation
 
-First, install matplotlib, then you just have to follow the instructions in https://github.com/tensorflow/privacy, since it covers all remaining dependencies.
+The usually easiest way to run the notebook is by running `setup.sh`. This will create a virtual environment, install the requirements and register it as ipykernel for the jupyter notebook. It will also print the name of the kernel you have to select.
 
-You also should copy a version of the Pennchar Dataset to ./data/.
+If you are having trouble setting everything up, you can try to manually install everything and might want to change versions of some packages.
 
 ## Usage
 
-For training a new model without DP-SGD:
-
-python lm_dpsgd_tutorial.py --epochs 1 --data_dir ../data/pennchar_augmented --model_dir ../model_dir --batch_size 16 --microbatches 16 --nodpsgd --noload_model
-
-
-For training a model with DP-SGD:
-
-python lm_dpsgd_tutorial.py --epochs 1 --data_dir ../data/pennchar_augmented --model_dir ../model_dir --batch_size 16 --microbatches 16 --dpsgd --noload_model
-
-Note: Training with DP-SGD requires significantly more memory than without. E.g. the test machine with 8GB could not handle to increase the batch_size and microbatches above 16.
-
-
-For loading a model change --noload_model to --load_model. Note that the model will be trained for the specified number of epochs. So if you just want to load it, you should use --epochs 0.
+The notebook should guide you through everything, so assuming everything installed correctly, you should just need to follow the instructions there.
