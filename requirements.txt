@@ -1,0 +1,6 @@
+scipy
+mpmath
+tensorflow
+matplotlib
+git+https://github.com/tensorflow/privacy
+ipykernel
