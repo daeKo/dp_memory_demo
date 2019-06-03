@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Creating virtual environment.."
-python -m venv --p Python3 .venv
+python3 -m venv --p Python3 .venv
 
 echo "Installing requirements.."
 source .venv/bin/activate
