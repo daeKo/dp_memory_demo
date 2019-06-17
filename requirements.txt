@@ -2,5 +2,5 @@ scipy
 mpmath
 tensorflow
 matplotlib
-git+https://github.com/tensorflow/privacy
+git+https://github.com/tensorflow/privacy@51e29667d97879b1f0adba940eceaa24e9266b1f
 ipykernel
